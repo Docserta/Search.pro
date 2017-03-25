@@ -8,8 +8,10 @@
 
 #Fonction Création du fichier Search.pro
 #Fonctionnement
-#Appeler la fonction Creer_Dossiers avec les parametres suivants :
-#Dossier de base où il faut créer le fichier search.pro
+#Ecris dans un fichier texte la liste( recursive) de tout les répertoires
+#      du repertoire sélectionné
+# Permet de selectionner un fichier search.pro existant pour y ajouter une liste de répertoire
+# détecte les chemins contenant des espaces 
 
 
 #=========== VARIABLES
@@ -18,11 +20,11 @@ $nLogoeXcent = "excentGroupeSmallBlanc.png"
 #===========
 
 #ajout de la list des fichiers au search.pro
+Function Create_Searchpro ([string]$PathFicSearch, [string]$PathtoAdd, [bool]$fileexist)
+{
 # $PathFicSearch = Répertoire du fichier searche.pro çà créer ou mettre à jour
 # $PathtoAdd = répertoire à lister et à ajouter au search.pro
 # $fileexist = Le fichier search.pro est déjà existant ou non
-Function Create_Searchpro ([string]$PathFicSearch, [string]$PathtoAdd, [bool]$fileexist)
-{
 $SpaceDetect = $false
 $MaTable =Get-ChildItem -path $PathtoAdd -Recurse | Where-Object { $_.PSIsContainer } | Select-Object Name,Fullname
 if (-not ($fileexist ))
@@ -41,17 +43,14 @@ ADD-content -path $FicSearch -value "!------ Lignes ajoutées par $strName le $s
 foreach ($MySubFolder in $MaTable){
     #Recheche d'espaces dans le nom du dossier
     $str =$MySubFolder.fullname -replace " ","_"  
-    if (-not ($str -eq  $MySubFolder.fullname)) 
-    {
-    $SpaceDetect = $true
-    $strligne = "!---"+ $MySubFolder.fullname
-    }
-    else
-    {
     $strligne = $MySubFolder.fullname
-    }
-        ADD-content -path $FicSearch -value $strligne
-  }
+    if (-not ($str -eq  $MySubFolder.fullname)) 
+        {
+        $SpaceDetect = $true
+        $strligne = "!---"+ $strligne
+        }
+    ADD-content -path $FicSearch -value $strligne
+}
 return $SpaceDetect
 }
 
@@ -81,7 +80,6 @@ function Show-MessageBox([string] $Message,[string] $Titre="",  [String] $IconTy
   #   Show-MessageBox "Message" "Titre" "Erreur" "AbortRetryIgnore"
   #   Show-MessageBox "Message" "Titre"  "Error" "AbortRetryIgnore"
 }
-#FIn -------------------------------------------
 
 # Select-Folder (Selection d'un répertoire)
 function Select-Folder($message='Selectionner un répertoire', $path = 0)
@@ -90,10 +88,9 @@ $object = New-Object -comObject Shell.Application
 $folder = $object.BrowseForFolder(0, $message, 0, $path)
 if ($folder -ne $null)
 	{
-		$folder.self.Path
+	$folder.self.Path
 	}
 }
-#FIn -------------------------------------------
 
 # select-search (selection d'un fichier search.pro existant
 function select-search($patch)
@@ -103,16 +100,13 @@ $fd.InitialDirectory = $patch
 $fd.MultiSelect = $true
 $fd.Filter ="PRO (*.pro)|*.pro"
 $fd.showdialog() | out-Null
-Return  $fd.FileName
 }
-#FIn -------------------------------------------
 
 #Vérification de l'éxistence du fichier search.pro
 function verif_Search($xfilesearch)
 {
 If (Test-Path $xfilesearch) {return $true} else {return $false}
 }
-#FIn -------------------------------------------
 
 # Recupération du path du script
 function Get-ScriptDirectory
@@ -121,7 +115,6 @@ $Invocation = (Get-Variable MyInvocation -Scope 1).Value
 write-host ("-" * 40)
 Split-Path $Invocation.MyCommand.Path
 }
-#FIn -------------------------------------------
 
 #FONCTION FDE GESTION INTERFACE GRAPHIQUE
 # Clic sur bouton Quitter 
@@ -134,16 +127,13 @@ $form1.Close();
 function ActionBt1_SelectFolder {
 $xfolderpath=Select-Folder 'Selectionner un répertoire'
 $textBox1.Text =$xfolderpath
-$textBox3.text =split-path -path $xfolderpath
-$textBox3.text = $textBox3.text + "\" + $nFicSearch
-#$progress.Value = 100
+$textBox3.text =(split-path -path $xfolderpath)+ "\" + $nFicSearch
 }
 
+#Fonction de délection d'un fichier Search.pro existant
 function ActionBt2_SelectSearch {
 $xfilesearch=select-search 'Selectionner le fichier search.pro'
-#Variable pour récupérer le chemin du fichier sélectionné
-$textBox3.Text =$xfilesearch
-#$progress.Value = 100
+$textBox3.Text =$xfilesearch.filename
 }
 
 # Clic sur bouton Creer Search.pro
@@ -164,8 +154,7 @@ Else{
 	if(Create_Searchpro $xNomSearchPro $xfolderpath $fileSearchExist)
         {
         Show-MessageBox "Des espaces ont été détectés dans les chemins. Vérifier le fichier Search.pro"
-        $fic = $textBox3.text
-        Invoke-Expression "notepad.exe $fic" 
+        Invoke-Expression "notepad.exe $xNomSearchPro" 
         }
         else
         {
@@ -217,18 +206,6 @@ $handler_pictureBox1_Click=
 
 }
 
-$handler_textBox2_TextChanged= 
-{
-#TODO: Place custom script here
-
-}
-
-$handler_label3_Click= 
-{
-#TODO: Place custom script here
-
-}
-
 $handler_button1_Click= 
 {
 #TODO: Place custom script here
@@ -245,12 +222,6 @@ $handler_btCreerSearchpro_Click=
 {
 #TODO: Place custom script here
 ActionBtCreerSearchpro
-}
-
-$handler_label5_Click= 
-{
-#TODO: Place custom script here
-
 }
 
 $handler_form1_Load= 
@@ -271,22 +242,10 @@ $handler_textBox1_TextChanged=
 
 }
 
-$handler_label2_Click= 
-{
-#TODO: Place custom script here
-
-}
-
 $btQuitter_OnClick= 
 {
 #TODO: Place custom script here
 ActionBtQuitter
-}
-
-$handler_label1_Click= 
-{
-#TODO: Place custom script here
-
 }
 
 $OnLoadForm_StateCorrection=
