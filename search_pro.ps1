@@ -2,7 +2,7 @@
 # Script Création Search.pro 
 # Cree le 13/03/2017
 # Par Christian Frigoult
-# Version 1 : Initial
+# Version 2 : Correction Bug Sélection Search.pro existant
 # 
 ########################################################################
 
@@ -17,6 +17,7 @@
 #=========== VARIABLES
 $nFicSearch = "search.pro"
 $nLogoeXcent = "excentGroupeSmallBlanc.png"
+$PathtoAdd
 #===========
 
 #ajout de la list des fichiers au search.pro
@@ -88,15 +89,15 @@ $object = New-Object -comObject Shell.Application
 $folder = $object.BrowseForFolder(0, $message, 0, $path)
 if ($folder -ne $null)
 	{
-	$folder.self.Path
+    $folder.self.Path
 	}
 }
 
 # select-search (selection d'un fichier search.pro existant
-function select-search($patch)
+function select-search ($path)
 {
 $fd = New-Object system.windows.forms.openfiledialog
-$fd.InitialDirectory = $patch
+$fd.InitialDirectory = $path
 $fd.MultiSelect = $true
 $fd.Filter ="PRO (*.pro)|*.pro"
 $fd.showdialog() | out-Null
@@ -125,31 +126,39 @@ $form1.Close();
 #Fonction de selection du répertoire a ajouter au search.pro
 #propose de localiser le fichier search.pro dans le répertoire parent du dossier sélectionné
 function ActionBt1_SelectFolder {
-$xfolderpath=Select-Folder 'Selectionner un répertoire'
-$textBox1.Text =$xfolderpath
-$textBox3.text =(split-path -path $xfolderpath)+ "\" + $nFicSearch
+$xfolderpath=Select-Folder 
+$tbxFolder.Text =$xfolderpath
+$global:PathtoAdd = (split-path -path $xfolderpath)
+#$tbxFicSearchpro.text =(split-path -path $xfolderpath)+ "\" + $nFicSearch
+$tbxFicSearchpro.text =$global:PathtoAdd+ "\" + $nFicSearch
 }
 
 #Fonction de délection d'un fichier Search.pro existant
 function ActionBt2_SelectSearch {
-$xfilesearch=select-search 'Selectionner le fichier search.pro'
-$textBox3.Text =$xfilesearch.filename
+$xfilesearch=select-search $global:PathtoAdd
+if ($xfilesearch.text.length -eq 0 ) {
+$tbxFicSearchpro.Text = $global:PathtoAdd+ "\" + $nFicSearch
+}
+else
+{
+$tbxFicSearchpro.Text =$xfilesearch.filename
+}
 }
 
 # Clic sur bouton Creer Search.pro
 Function ActionBtCreerSearchpro {
-if ($textBox1.text.length -eq 0 )
+if ($tbxFolder.text.length -eq 0 )
 	{
 	Show-MessageBox "Vous n'avez pas choisi de dossier"
 	}
 Else{
-    if ($textBox3.text.length -eq 0)
+    if ($tbxFicSearchpro.text.length -eq 0)
         {
 	    #si pas de fichier search.pro documenté -> on force la localisation du fichier
-        $textBox3.text ="c:\temp\search.pro"
+        $tbxFicSearchpro.text ="c:\temp\search.pro"
 	    }
-	$xfolderpath = $textBox1.text
-    $xNomSearchPro = $textBox3.text
+	$xfolderpath = $tbxFolder.text
+    $xNomSearchPro = $tbxFicSearchpro.text
     $fileSearchExist = verif_Search $xNomSearchPro
 	if(Create_Searchpro $xNomSearchPro $xfolderpath $fileSearchExist)
         {
@@ -180,12 +189,12 @@ function GenerateForm {
 $form1 = New-Object System.Windows.Forms.Form
 $label5 = New-Object System.Windows.Forms.Label
 $label1 = New-Object System.Windows.Forms.Label
-$textBox3 = New-Object System.Windows.Forms.TextBox
+$tbxFicSearchpro = New-Object System.Windows.Forms.TextBox
 $label2 = New-Object System.Windows.Forms.Label
 $btCreerAffaire = New-Object System.Windows.Forms.Button
 $BtSelectFolder = New-Object System.Windows.Forms.Button
 $BtSelectSearch = New-Object System.Windows.Forms.Button
-$textBox1 = New-Object System.Windows.Forms.TextBox
+$tbxFolder = New-Object System.Windows.Forms.TextBox
 $textBox2 = New-Object System.Windows.Forms.TextBox
 $label3 = New-Object System.Windows.Forms.Label
 $label4 = New-Object System.Windows.Forms.Label
@@ -202,49 +211,37 @@ $InitialFormWindowState = New-Object System.Windows.Forms.FormWindowState
 #Provide Custom Code for events specified in PrimalForms.
 $handler_pictureBox1_Click= 
 {
-#TODO: Place custom script here
-
 }
 
-$handler_button1_Click= 
+$BtSelectFolder_Click= 
 {
-#TODO: Place custom script here
 ActionBt1_SelectFolder
 }
 
 $handler_button2_Click= 
 {
-#TODO: Place custom script here
 ActionBt2_SelectSearch
 }
 
 $handler_btCreerSearchpro_Click= 
 {
-#TODO: Place custom script here
 ActionBtCreerSearchpro
 }
 
 $handler_form1_Load= 
 {
-#TODO: Place custom script here
-
 }
 
 $handler_label4_Click= 
 {
-#TODO: Place custom script here
-
 }
 
-$handler_textBox1_TextChanged= 
+$handler_tbxFolder_TextChanged= 
 {
-#TODO: Place custom script here
-
 }
 
 $btQuitter_OnClick= 
 {
-#TODO: Place custom script here
 ActionBtQuitter
 }
 
@@ -285,20 +282,20 @@ $label1.Text = "Localisation du fichier Search.pro"
 $form1.Controls.Add($label1)
 
 #--- BOX CHEMIN+NOM FICHIER SEARCH.PRO
-$textBox3.BackColor = [System.Drawing.Color]::FromArgb(255,255,255,255)
-$textBox3.BorderStyle = 1
-$textBox3.DataBindings.DefaultDataSourceUpdateMode = 0
+$tbxFicSearchpro.BackColor = [System.Drawing.Color]::FromArgb(255,255,255,255)
+$tbxFicSearchpro.BorderStyle = 1
+$tbxFicSearchpro.DataBindings.DefaultDataSourceUpdateMode = 0
 $System_Drawing_Point = New-Object System.Drawing.Point
 $System_Drawing_Point.X = 25
 $System_Drawing_Point.Y = 320
-$textBox3.Location = $System_Drawing_Point
-$textBox3.Name = "textBox3"
+$tbxFicSearchpro.Location = $System_Drawing_Point
+$tbxFicSearchpro.Name = "tbxFicSearchpro"
 $System_Drawing_Size = New-Object System.Drawing.Size
 $System_Drawing_Size.Height = 20
 $System_Drawing_Size.Width = 455
-$textBox3.Size = $System_Drawing_Size
-$textBox3.TabIndex = 7
-$form1.Controls.Add($textBox3)
+$tbxFicSearchpro.Size = $System_Drawing_Size
+$tbxFicSearchpro.TabIndex = 7
+$form1.Controls.Add($tbxFicSearchpro)
 
 #--- LABEL REPRTOIRES A AJOUTER
 $label2.AutoSize = $True
@@ -364,7 +361,7 @@ $BtSelectFolder.Size = $System_Drawing_Size
 $BtSelectFolder.TabIndex = 2
 $BtSelectFolder.Text = "Sélection Dossier"
 $BtSelectFolder.UseVisualStyleBackColor = $False
-$BtSelectFolder.add_Click($handler_button1_Click)
+$BtSelectFolder.add_Click($BtSelectFolder_Click)
 $form1.Controls.Add($BtSelectFolder)
 
 #--- BOUTON SELECTION SEARCH.PRO
@@ -392,21 +389,21 @@ $BtSelectSearch.add_Click($handler_button2_Click)
 $form1.Controls.Add($BtSelectSearch)
 
 #--- BOX REPERTOIRE A AJOUTER AU SEARCH.PRO
-$textBox1.BackColor = [System.Drawing.Color]::FromArgb(255,255,255,255)
-$textBox1.BorderStyle = 1
-$textBox1.DataBindings.DefaultDataSourceUpdateMode = 0
+$tbxFolder.BackColor = [System.Drawing.Color]::FromArgb(255,255,255,255)
+$tbxFolder.BorderStyle = 1
+$tbxFolder.DataBindings.DefaultDataSourceUpdateMode = 0
 $System_Drawing_Point = New-Object System.Drawing.Point
 $System_Drawing_Point.X = 25
 $System_Drawing_Point.Y = 210
-$textBox1.Location = $System_Drawing_Point
-$textBox1.Name = "textBox1"
+$tbxFolder.Location = $System_Drawing_Point
+$tbxFolder.Name = "tbxFolder"
 $System_Drawing_Size = New-Object System.Drawing.Size
 $System_Drawing_Size.Height = 20
 $System_Drawing_Size.Width = 455
-$textBox1.Size = $System_Drawing_Size
-$textBox1.TabIndex = 0
-$textBox1.add_TextChanged($handler_textBox1_TextChanged)
-$form1.Controls.Add($textBox1)
+$tbxFolder.Size = $System_Drawing_Size
+$tbxFolder.TabIndex = 0
+$tbxFolder.add_TextChanged($handler_tbxFolder_TextChanged)
+$form1.Controls.Add($tbxFolder)
 
 #--- BOUTON QUITTER ---
 $btQuitter.BackColor = [System.Drawing.Color]::FromArgb(255,180,180,180)
